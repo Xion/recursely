@@ -32,6 +32,13 @@ class TestRecursiveImporter(unittest.TestCase):
         sys.path.insert(0, IMPORTED_DIR)
 
     def test_just_modules(self):
+        """Package with just modules and __recursive__ = 'modules'."""
         import justmodules
         self.assertEquals(justmodules.a.A, 1)
         self.assertEquals(justmodules.b.B, 2)
+
+    def test_just_packages(self):
+        """Package with just subpackages and __recursive__ = 'packages'."""
+        import justpackages
+        self.assertEquals(justpackages.a.A, 1)
+        self.assertEquals(justpackages.b.B, 2)
