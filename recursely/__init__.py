@@ -50,15 +50,17 @@ class RecursiveImporter(ImportHook):
             return
         package_dir = os.path.dirname(module_file)
 
-        if recursive is True:
-            recursive = 'all'
-        recursive = recursive.lower()
+        # convert the spec to common form
+        if isinstance(recursive, basestring):
+            recursive = recursive.lower()
+        if recursive in ('all', 'both'):
+            recursive = True
 
         # see what kind of children we should import
         children = []
-        if recursive in ('all', 'packages'):
+        if recursive in (True, 'packages'):
             children.extend(self.list_subpackages(package_dir))
-        if recursive in ('all', 'modules'):
+        if recursive in (True, 'modules'):
             children.extend(m for m in self.list_submodules(package_dir)
                             if m != '__init__')
 
