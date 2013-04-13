@@ -31,14 +31,38 @@ class TestRecursiveImporter(unittest.TestCase):
         # make it possible to import from tests/imported directory
         sys.path.insert(0, IMPORTED_DIR)
 
-    def test_just_modules(self):
+    def test_only_submodules__import_modules(self):
         """Package with just modules and __recursive__ = 'modules'."""
-        import justmodules
-        self.assertEquals(justmodules.a.A, 1)
-        self.assertEquals(justmodules.b.B, 2)
+        import justmodules as pkg
+        self.assertEquals(pkg.a.A, 1)
+        self.assertEquals(pkg.b.B, 2)
 
-    def test_just_packages(self):
+    def test_only_subpackages__import_packages(self):
         """Package with just subpackages and __recursive__ = 'packages'."""
-        import justpackages
-        self.assertEquals(justpackages.a.A, 1)
-        self.assertEquals(justpackages.b.B, 2)
+        import justpackages as pkg
+        self.assertEquals(pkg.a.A, 1)
+        self.assertEquals(pkg.b.B, 2)
+
+    def test_both__import_modules(self):
+        """Package with modules and packages, and __recursive__ = 'modules'."""
+        import importmodules as pkg
+
+        # subpackage `a` shouldn't be imported
+        with self.assertRaises(AttributeError):
+            pkg.a.A
+        with self.assertRaises(KeyError):
+            sys.modules['%s.a' % pkg.__name__]
+
+        self.assertEquals(pkg.b.B, 2)
+
+    def test_both__import_packages(self):
+        """Package with modules and packages, and __recursive__ = 'packages'."""
+        import importpackages as pkg
+
+        self.assertEquals(pkg.a.A, 1)
+
+        # submodules `b` shouldn't be imported
+        with self.assertRaises(AttributeError):
+            pkg.b.B
+        with self.assertRaises(KeyError):
+            sys.modules['%s.b' % pkg.__name__]
