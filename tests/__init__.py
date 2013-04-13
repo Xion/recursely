@@ -66,3 +66,9 @@ class TestRecursiveImporter(unittest.TestCase):
             pkg.b.B
         with self.assertRaises(KeyError):
             sys.modules['%s.b' % pkg.__name__]
+
+    def test_both__import_all(self):
+        """Package with modules and packages, and __recursive__ = 'all'."""
+        import importall as pkg
+        self.assertEquals(pkg.a.A, 1)
+        self.assertEquals(pkg.b.B, 2)
