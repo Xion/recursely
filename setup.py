@@ -31,4 +31,5 @@ setup(
 
     platforms='any',
     packages=find_packages(exclude=['tests']),
+    tests_require=['nose'],
 )

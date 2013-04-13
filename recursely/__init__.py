@@ -6,6 +6,7 @@ __author__ = "Karol Kuczmarski"
 __license__ = "BSD"
 
 
+import imp
 import os
 import sys
 
@@ -20,7 +21,12 @@ def install():
     at the very end of ``sys.meta_path``, so that it's tried only if
     no other (more specific) hook has been chosen by Python.
     """
-    sys.meta_path = SentinelList(sys.meta_path, sentinel=RecursiveImporter())
+    imp.acquire_lock()
+    try:
+        sys.meta_path = SentinelList(sys.meta_path,
+                                     sentinel=RecursiveImporter())
+    finally:
+        imp.release_lock()
 
 
 class RecursiveImporter(ImportHook):
@@ -60,7 +66,12 @@ class RecursiveImporter(ImportHook):
             globals_ = module.__dict__
             locals_ = module.__dict__
             for child in children:
-                __import__(child, globals_, locals_)
+                child_module = __import__(child, globals_, locals_)
+                if not hasattr(module, child):
+                    setattr(module, child, child_module)
+
+        module.__loader__ = self
+        return module
 
     @staticmethod
     def list_subpackages(package_dir):
