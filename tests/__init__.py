@@ -56,3 +56,14 @@ class TestRecursiveImporter(unittest.TestCase):
         self.assertEquals(pkg.b.B, 2)
         self.assertEquals(pkg.a.c.C, 3)
         self.assertEquals(pkg.a.d.D, 4)
+
+    def test_both__three_levels(self):
+        """Package with modules and packages up to three levels of recursion."""
+        import both3levels as pkg
+        self.assertEquals(pkg.a.A, 1)
+        self.assertEquals(pkg.b.B, 2)
+        self.assertEquals(pkg.a.c.C, 3)
+        self.assertEquals(pkg.a.d.D, 4)
+        self.assertEquals(pkg.a.e.E, 5)
+        self.assertEquals(pkg.a.c.f.F, 6)
+        self.assertEquals(pkg.a.c.g.G, 7)
