@@ -3,6 +3,24 @@ recursely
 =========
 
 Recursive importer for Python submodules
+
+Usage
+-----
+
+First, install it early during program's initialization,
+such as the top of `\_\_init\_\_.py` in its main package::
+
+    import recursely
+    recursely.install()
+
+Then you can add::
+
+    __recursive__ = True
+
+anywhere in the `\_\_.init\_\_.py` file of a package
+that you want to import recurs(iv)ely.
+
+That's all to it, really.
 """
 from setuptools import setup, find_packages
 
