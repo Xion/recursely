@@ -17,6 +17,16 @@ class ImportHook(object):
     Alternativaly, it's possible to completely either the process
     of finding a module to import, or loading the module, or both.
     """
+    class __metaclass__(type):
+        """Metaclass for selecting a correct set of (abstract) base classes
+        depending on the Python version we are running.
+        """
+        def __new__(cls, name, bases, dict_):
+            if sys.version_info[0] >= 3:
+                from importlib import abc
+                bases = (abc.Finder, abc.Loader, abc.InspectLoader)
+            return type.__new__(cls, name, bases, dict_)
+
     def on_module_found(self, fullname, path):
         """Event triggered when module has been succesfully found
         and will be loaded using this importer.
@@ -90,7 +100,7 @@ class ImportHook(object):
         self._path = path
         return self
 
-    def load_module(self, fullname, path=None):
+    def load_module(self, fullname):
         """Module loading method.
 
         By default, we use standard importing method that involves
