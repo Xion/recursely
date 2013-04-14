@@ -3,6 +3,10 @@ recursely
 
 Recursive importer for Python submodules and subpackages
 
+.. image:: https://secure.travis-ci.org/Xion/recursely.png
+   :alt: Build Status
+   :target: http://travis-ci.org/Xion/recursely
+
 
 Why?
 ~~~~
