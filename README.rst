@@ -76,7 +76,7 @@ making several hooks works together and not stomp on each other.
 That's why *recursely* goes to great lengths to ensure that
 its catch-all hook is always invoked as the *last* one.
 This allows other, specialized hooks - like the one handling
-`\ ``flask.ext`` pseudopackage <http://flask.pocoo.org/docs/extensiondev/>`_
+`flask.ext pseudopackage <http://flask.pocoo.org/docs/extensiondev/>`_
 - to operate without any issue on imports they are designed to intercept.
 
 
