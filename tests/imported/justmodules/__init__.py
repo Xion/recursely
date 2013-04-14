@@ -1,5 +1,4 @@
 """
-Imported package that contains only submodules
-and specifies that only submodules should be imported.
+Imported package that contains only submodules.
 """
-__recursive__ = 'modules'
+__recursive__ = True

@@ -31,44 +31,28 @@ class TestRecursiveImporter(unittest.TestCase):
         # make it possible to import from tests/imported directory
         sys.path.insert(0, IMPORTED_DIR)
 
-    def test_only_submodules__import_modules(self):
-        """Package with just modules and __recursive__ = 'modules'."""
+    def test_only_submodules(self):
+        """Package with just one level of submodules."""
         import justmodules as pkg
         self.assertEquals(pkg.a.A, 1)
         self.assertEquals(pkg.b.B, 2)
 
-    def test_only_subpackages__import_packages(self):
-        """Package with just subpackages and __recursive__ = 'packages'."""
+    def test_only_subpackages(self):
+        """Package with just one level of subpackages."""
         import justpackages as pkg
         self.assertEquals(pkg.a.A, 1)
         self.assertEquals(pkg.b.B, 2)
 
-    def test_both__import_modules(self):
-        """Package with modules and packages, and __recursive__ = 'modules'."""
-        import importmodules as pkg
-
-        # subpackage `a` shouldn't be imported
-        with self.assertRaises(AttributeError):
-            pkg.a.A
-        with self.assertRaises(KeyError):
-            sys.modules['%s.a' % pkg.__name__]
-
-        self.assertEquals(pkg.b.B, 2)
-
-    def test_both__import_packages(self):
-        """Package with modules and packages, and __recursive__ = 'packages'."""
-        import importpackages as pkg
-
-        self.assertEquals(pkg.a.A, 1)
-
-        # submodules `b` shouldn't be imported
-        with self.assertRaises(AttributeError):
-            pkg.b.B
-        with self.assertRaises(KeyError):
-            sys.modules['%s.b' % pkg.__name__]
-
-    def test_both__import_all(self):
-        """Package with modules and packages, and __recursive__ = 'all'."""
-        import importall as pkg
+    def test_both__one_level(self):
+        """Package with modules and packages up to one level of recursion."""
+        import both1level as pkg
         self.assertEquals(pkg.a.A, 1)
         self.assertEquals(pkg.b.B, 2)
+
+    def test_both__two_levels(self):
+        """Package with modules and packages up to two levels of recursion."""
+        import both2levels as pkg
+        self.assertEquals(pkg.a.A, 1)
+        self.assertEquals(pkg.b.B, 2)
+        self.assertEquals(pkg.a.c.C, 3)
+        self.assertEquals(pkg.a.d.D, 4)
