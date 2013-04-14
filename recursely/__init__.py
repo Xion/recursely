@@ -38,31 +38,23 @@ class RecursiveImporter(ImportHook):
     """
     def on_module_imported(self, fullname, module):
         """Invoked just after a module has been imported."""
-        recursive = getattr(module, '__recursive__', False)
+        recursive = getattr(module, '__recursive__', None)
         if not recursive:
             return
+        return self._recursive_import(module, spec=recursive)
 
-        # recursive import can only start from package's __init__.py file
-        module_file = getattr(module, '__file__', None)
-        if not module_file:
+    def _recursive_import(self, module, spec):
+        """Recursively import submodules and/or subpackage of given package,
+        as defined in the ``spec``.
+
+        :param module: Module object for the package's `__init__` module
+        """
+        package_dir = self._get_package_dir(module)
+        if not package_dir:
             return
-        if os.path.splitext(os.path.basename(module_file))[0] != '__init__':
-            return
-        package_dir = os.path.dirname(module_file)
 
-        # convert the spec to common form
-        if isinstance(recursive, basestring):
-            recursive = recursive.lower()
-        if recursive in ('all', 'both'):
-            recursive = True
-
-        # see what kind of children we should import
-        children = []
-        if recursive in (True, 'packages'):
-            children.extend(self.list_subpackages(package_dir))
-        if recursive in (True, 'modules'):
-            children.extend(m for m in self.list_submodules(package_dir)
-                            if m != '__init__')
+        spec = self._homogenize_spec(spec)
+        children = self._list_children(package_dir, spec)
 
         if children:
             globals_ = module.__dict__
@@ -72,11 +64,59 @@ class RecursiveImporter(ImportHook):
                 if not hasattr(module, child):
                     setattr(module, child, child_module)
 
+                # apply the importing procedure recursively,
+                # but only if it wasn't applied already, simply by
+                # our import hook triggering when child was imported above
+                if not hasattr(child_module, '__recursive__'):
+                    self._recursive_import(child_module, spec)
+
         module.__loader__ = self
         return module
 
-    @staticmethod
-    def list_subpackages(package_dir):
+    def _get_package_dir(self, module):
+        """Get the package directory for given `__init__` module."""
+        module_file = getattr(module, '__file__', None)
+        if not self._is_init_py(module_file):
+            return
+        return os.path.dirname(module_file)
+
+    def _is_init_py(self, module_file):
+        """Check if given filename points to an `__init__` module."""
+        if not module_file:
+            return False
+
+        filename = os.path.basename(module_file)
+        root, _ = os.path.splitext(filename)
+        return root == '__init__'
+
+    def _homogenize_spec(self, spec):
+        """Convert the specification of how the recursive import
+        should be done into a common representation.
+        """
+        if isinstance(spec, basestring):
+            spec = spec.lower()
+        if spec in ('all', 'both'):
+            spec = True
+
+        return spec
+
+    def _list_children(self, package_dir, spec):
+        """Lists all child items contained with given package
+        that should be recursively imported according to ``spec``.
+
+        :param package_dir: Package directory
+        """
+        children = []
+
+        if spec in (True, 'packages'):
+            children.extend(self._list_subpackages(package_dir))
+        if spec in (True, 'modules'):
+            children.extend(m for m in self._list_submodules(package_dir)
+                            if m != '__init__')
+
+        return children
+
+    def _list_subpackages(self, package_dir):
         """Lists all subpackages (directories with `__init__.py`)
         contained within given package.
 
@@ -90,8 +130,7 @@ class RecursiveImporter(ImportHook):
         return [name for name in os.listdir(package_dir)
                 if is_subpackage_dir(name)]
 
-    @staticmethod
-    def list_submodules(package_dir):
+    def _list_submodules(self, package_dir):
         """Lists all submodules (`*.py` files) contained within given package.
         :param package_dir: Package directory
         """
