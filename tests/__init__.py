@@ -25,9 +25,10 @@ def test_imported_dir_is_not_package():
 
 class TestImportHook(unittest.TestCase):
 
-    @unittest.skipUnless(sys.version_info[0] == 3,
-                         "importlib.abc available only in Python 3")
     def test_abc(self):
+        if sys.version_info[0] < 3:
+            return  # Python -3 specific test
+
         from importlib import abc
         self.assertTrue(issubclass(ImportHook, abc.Finder))
         self.assertTrue(issubclass(ImportHook, abc.Loader))
