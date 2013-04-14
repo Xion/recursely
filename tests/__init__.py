@@ -5,6 +5,8 @@ import os
 import sys
 import unittest
 
+from recursely.hook import ImportHook
+
 
 TESTS_DIR = os.path.dirname(__file__)
 IMPORTED_DIR = os.path.join(TESTS_DIR, 'imported')
@@ -19,6 +21,17 @@ def test_imported_dir_is_not_package():
     """
     imported_init_py = os.path.join(IMPORTED_DIR, '__init__.py')
     assert not os.path.exists(imported_init_py)
+
+
+class TestImportHook(unittest.TestCase):
+
+    @unittest.skipUnless(sys.version_info[0] == 3,
+                         "importlib.abc available only in Python 3")
+    def test_abc(self):
+        from importlib import abc
+        self.assertTrue(issubclass(ImportHook, abc.Finder))
+        self.assertTrue(issubclass(ImportHook, abc.Loader))
+        self.assertTrue(issubclass(ImportHook, abc.InspectLoader))
 
 
 class TestRecursiveImporter(unittest.TestCase):
