@@ -39,23 +39,18 @@ class RecursiveImporter(ImportHook):
     def on_module_imported(self, fullname, module):
         """Invoked just after a module has been imported."""
         recursive = getattr(module, '__recursive__', None)
-        if not recursive:
-            return
-        return self._recursive_import(module, spec=recursive)
+        if recursive:
+            return self._recursive_import(module)
 
-    def _recursive_import(self, module, spec):
-        """Recursively import submodules and/or subpackage of given package,
-        as defined in the ``spec``.
-
+    def _recursive_import(self, module):
+        """Recursively import submodules and/or subpackage of given package.
         :param module: Module object for the package's `__init__` module
         """
         package_dir = self._get_package_dir(module)
         if not package_dir:
             return
 
-        spec = self._homogenize_spec(spec)
-        children = self._list_children(package_dir, spec)
-
+        children = self._list_children(package_dir)
         if children:
             globals_ = module.__dict__
             locals_ = module.__dict__
@@ -68,7 +63,7 @@ class RecursiveImporter(ImportHook):
                 # but only if it wasn't applied already, simply by
                 # our import hook triggering when child was imported above
                 if not hasattr(child_module, '__recursive__'):
-                    self._recursive_import(child_module, spec)
+                    self._recursive_import(child_module)
 
         module.__loader__ = self
         return module
@@ -89,31 +84,16 @@ class RecursiveImporter(ImportHook):
         root, _ = os.path.splitext(filename)
         return root == '__init__'
 
-    def _homogenize_spec(self, spec):
-        """Convert the specification of how the recursive import
-        should be done into a common representation.
-        """
-        if isinstance(spec, basestring):
-            spec = spec.lower()
-        if spec in ('all', 'both'):
-            spec = True
-
-        return spec
-
-    def _list_children(self, package_dir, spec):
+    def _list_children(self, package_dir):
         """Lists all child items contained with given package
-        that should be recursively imported according to ``spec``.
+        including submodules and subpackages
 
         :param package_dir: Package directory
         """
         children = []
-
-        if spec in (True, 'packages'):
-            children.extend(self._list_subpackages(package_dir))
-        if spec in (True, 'modules'):
-            children.extend(m for m in self._list_submodules(package_dir)
-                            if m != '__init__')
-
+        children.extend(self._list_subpackages(package_dir))
+        children.extend(m for m in self._list_submodules(package_dir)
+                        if m != '__init__')
         return children
 
     def _list_subpackages(self, package_dir):
