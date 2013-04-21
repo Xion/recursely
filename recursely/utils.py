@@ -38,8 +38,8 @@ class SentinelList(list):
                 dict_[op] = cls.with_preserved_sentinel(op)
             return type.__new__(cls, name, bases, dict_)
 
-        @staticmethod
-        def with_preserved_sentinel(op):
+        @classmethod
+        def with_preserved_sentinel(cls, op):
             """For given :class:`list` operation ``op``, returns a function
             encapsulating it within a code that preserves the sentinel element
             at the end of list.
