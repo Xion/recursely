@@ -81,3 +81,9 @@ class TestRecursiveImporter(unittest.TestCase):
         self.assertEquals(pkg.a.e.E, 5)
         self.assertEquals(pkg.a.c.f.F, 6)
         self.assertEquals(pkg.a.c.g.G, 7)
+
+    def test_star_import(self):
+        """Package with ``_recursive__ = '*'``."""
+        import starimport as pkg
+        self.assertEquals(pkg.A, 1)
+        self.assertEquals(pkg.B, 2)

@@ -40,11 +40,15 @@ class RecursiveImporter(ImportHook):
         """Invoked just after a module has been imported."""
         recursive = getattr(module, '__recursive__', None)
         if recursive:
-            return self._recursive_import(module)
+            return self._recursive_import(module, as_star=recursive == '*')
 
-    def _recursive_import(self, module):
+    def _recursive_import(self, module, as_star=False):
         """Recursively import submodules and/or subpackage of given package.
+
         :param module: Module object for the package's `__init__` module
+        :param as_star: Whether this should be a "star" import, i.e. a one
+                        that brings all symbols from child module into
+                        parent module's namespace (``from foo import **``).
         """
         package_dir = self._get_package_dir(module)
         if not package_dir:
@@ -56,14 +60,25 @@ class RecursiveImporter(ImportHook):
             locals_ = module.__dict__
             for child in children:
                 child_module = __import__(child, globals_, locals_)
-                if not hasattr(module, child):
-                    setattr(module, child, child_module)
+
+                # bring (symbols from) child module into parent's namespace
+                if as_star:
+                    public_names = getattr(child_module, '__all__', None)
+                    if public_names is None:
+                        public_names = (name for name in child_module.__dict__
+                                        if not name.startswith('_'))
+                    for name in public_names:
+                        obj = getattr(child_module, name)
+                        setattr(module, name, obj)
+                else:
+                    if not hasattr(module, child):
+                        setattr(module, child, child_module)
 
                 # apply the importing procedure recursively,
                 # but only if it wasn't applied already, simply by
                 # our import hook triggering when child was imported above
                 if not hasattr(child_module, '__recursive__'):
-                    self._recursive_import(child_module)
+                    self._recursive_import(child_module, as_star)
 
         module.__loader__ = self
         return module
