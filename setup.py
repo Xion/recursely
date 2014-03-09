@@ -22,10 +22,36 @@ that you want to import recurs(iv)ely.
 
 That's all to it, really.
 """
+import ast
 import os
 from setuptools import setup, find_packages
 
-import recursely
+
+def read_tags(filename):
+    """Reads values of "magic tags" defined in the given Python file.
+
+    :param filename: Python filename to read the tags from
+    :return: Dictionary of tags
+    """
+    with open(filename) as f:
+        ast_tree = ast.parse(f.read(), filename)
+
+    res = {}
+    for node in ast.walk(ast_tree):
+        if type(node) is not ast.Assign:
+            continue
+
+        target = node.targets[0]
+        if type(target) is not ast.Name:
+            continue
+
+        if not (target.id.startswith('__') and target.id.endswith('__')):
+            continue
+
+        name = target.id[2:-2]
+        res[name] = ast.literal_eval(node.value)
+
+    return res
 
 
 def read_requirements(filename='requirements.txt'):
@@ -58,15 +84,18 @@ def read_requirements(filename='requirements.txt'):
         return list(map(extract_requirement, filter(valid_line, lines)))
 
 
+tags = read_tags(os.path.join('recursely', '__init__.py'))
+
+
 setup(
     name="recursely",
-    version=recursely.__version__,
+    version=tags['version'],
     description="Recursive importer for Python submodules",
     long_description=__doc__,
-    author=recursely.__author__,
+    author=tags['author'],
     author_email="karol.kuczmarski@gmail.com",
     url="http://github.com/Xion/recursely",
-    license="Simplified BSD",
+    license=tags['license'],
 
     classifiers=[
         "Development Status :: 1 - Planning",
