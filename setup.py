@@ -2,7 +2,7 @@
 recursely
 =========
 
-Recursive importer for Python submodules
+{description}
 
 Usage
 -----
@@ -85,12 +85,13 @@ def read_requirements(filename='requirements.txt'):
 
 
 tags = read_tags(os.path.join('recursely', '__init__.py'))
+__doc__ = __doc__.format(**tags)
 
 
 setup(
     name="recursely",
     version=tags['version'],
-    description="Recursive importer for Python submodules",
+    description=tags['description'],
     long_description=__doc__,
     author=tags['author'],
     author_email="karol.kuczmarski@gmail.com",
