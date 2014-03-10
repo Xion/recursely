@@ -11,8 +11,11 @@ import imp
 import os
 import sys
 
-from .hook import ImportHook
-from .utils import SentinelList
+from recursely.hook import ImportHook
+from recursely.utils import SentinelList
+
+
+__all__ = ['install']
 
 
 def install():
