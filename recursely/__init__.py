@@ -27,6 +27,8 @@ def install():
     """
     imp.acquire_lock()
     try:
+        if isinstance(sys.meta_path, SentinelList):
+            return
         sys.meta_path = SentinelList(sys.meta_path,
                                      sentinel=RecursiveImporter())
     finally:
