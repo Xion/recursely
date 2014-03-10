@@ -3,7 +3,7 @@ Utility module.
 """
 import functools
 
-from recursely._compat import metaclass
+from recursely._compat import IS_PY3, metaclass
 
 
 __all__ = ['SentinelList']
@@ -13,10 +13,12 @@ class SentinelListMetaclass(type):
     """Metaclass for :class:`SentinelList` that redefines
     all relevant list operations to preserve the sentinel.
     """
-    OPERATORS = ('__delitem__', '__delslice__', '__iadd__', '__imul__',
-                 '__setitem__', '__setslice__')
-    METHODS = ('append', 'extend', 'insert', 'pop',
-               'remove', 'reverse', 'sort')
+    OPERATORS = ['__delitem__', '__iadd__', '__imul__', '__setitem__']
+    if not IS_PY3:
+        OPERATORS.extend(['__delslice__', '__setslice__'])
+
+    METHODS = ['append', 'extend', 'insert', 'pop',
+               'remove', 'reverse', 'sort']
 
     def __new__(cls, name, bases, dict_):
         """Redefines all state-altering operations to preserve sentinel

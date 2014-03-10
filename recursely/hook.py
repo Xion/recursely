@@ -5,24 +5,12 @@ import imp
 import inspect
 import sys
 
-from recursely._compat import IS_PY3, metaclass
+from recursely._compat import IS_PY3
 
 
 __all__ = ['ImportHook']
 
 
-class ImportHookMetaclass(type):
-    """Metaclass for selecting a correct set of (abstract) base classes
-    for :class:`ImportHook`, depending on the Python version we are running.
-    """
-    def __new__(cls, name, bases, dict_):
-        if IS_PY3:
-            from importlib import abc
-            bases = (abc.Finder, abc.Loader, abc.InspectLoader)
-        return type.__new__(cls, name, bases, dict_)
-
-
-@metaclass(ImportHookMetaclass)
 class ImportHook(object):
     """Base class for import hooks, including both ``sys.meta_path``
     and ``sys.path_hooks`` ones.
@@ -168,3 +156,8 @@ class ImportHook(object):
 
     def get_source(self, fullname):
         return inspect.getsource(self._import(fullname))
+
+if IS_PY3:
+    from importlib import abc
+    for ab in (abc.Finder, abc.Loader, abc.InspectLoader):
+        ab.register(ImportHook)
