@@ -5,7 +5,24 @@ import imp
 import inspect
 import sys
 
+from recursely._compat import IS_PY3, metaclass
 
+
+__all__ = ['ImportHook']
+
+
+class ImportHookMetaclass(type):
+    """Metaclass for selecting a correct set of (abstract) base classes
+    for :class:`ImportHook`, depending on the Python version we are running.
+    """
+    def __new__(cls, name, bases, dict_):
+        if IS_PY3:
+            from importlib import abc
+            bases = (abc.Finder, abc.Loader, abc.InspectLoader)
+        return type.__new__(cls, name, bases, dict_)
+
+
+@metaclass(ImportHookMetaclass)
 class ImportHook(object):
     """Base class for import hooks, including both ``sys.meta_path``
     and ``sys.path_hooks`` ones.
@@ -17,16 +34,6 @@ class ImportHook(object):
     Alternativaly, it's possible to completely either the process
     of finding a module to import, or loading the module, or both.
     """
-    class __metaclass__(type):
-        """Metaclass for selecting a correct set of (abstract) base classes
-        depending on the Python version we are running.
-        """
-        def __new__(cls, name, bases, dict_):
-            if sys.version_info[0] >= 3:
-                from importlib import abc
-                bases = (abc.Finder, abc.Loader, abc.InspectLoader)
-            return type.__new__(cls, name, bases, dict_)
-
     def on_module_found(self, fullname, path):
         """Event triggered when module has been succesfully found
         and will be loaded using this importer.
