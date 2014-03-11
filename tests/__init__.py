@@ -3,8 +3,12 @@ Tests package.
 """
 import os
 import sys
-import unittest
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
+from recursely._compat import IS_PY3
 from recursely.hook import ImportHook
 
 
@@ -25,10 +29,8 @@ def test_imported_dir_is_not_package():
 
 class TestImportHook(unittest.TestCase):
 
+    @unittest.skipUnless(IS_PY3, "requires Python 3.x")
     def test_abc(self):
-        if sys.version_info[0] < 3:
-            return  # Python -3 specific test
-
         from importlib import abc
         self.assertTrue(issubclass(ImportHook, abc.Finder))
         self.assertTrue(issubclass(ImportHook, abc.Loader))
