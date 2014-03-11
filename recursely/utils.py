@@ -24,6 +24,8 @@ class SentinelListMetaclass(type):
         """Redefines all state-altering operations to preserve sentinel
         and creates the resulting :class:`list` subclass.
         """
+        assert bases == (list,)
+
         for op in cls.OPERATORS + cls.METHODS:
             dict_[op] = cls.with_preserved_sentinel(op)
         return type.__new__(cls, name, bases, dict_)

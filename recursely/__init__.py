@@ -11,6 +11,7 @@ import imp
 import os
 import sys
 
+from recursely._compat import IS_PY26, IS_PY3
 from recursely.hook import ImportHook
 from recursely.utils import SentinelList
 
@@ -27,10 +28,20 @@ def install():
     """
     imp.acquire_lock()
     try:
-        if isinstance(sys.meta_path, SentinelList):
-            return
-        sys.meta_path = SentinelList(sys.meta_path,
-                                     sentinel=RecursiveImporter())
+        if IS_PY3:
+            if any(isinstance(ih, RecursiveImporter) for ih in sys.meta_path):
+                return
+
+            for i in reversed(range(len(sys.meta_path))):
+                ih_module = getattr(sys.meta_path[i], '__module__', '')
+                if ih_module != '_frozen_importlib':
+                    break
+            sys.meta_path.insert(i, RecursiveImporter())
+        else:
+            if isinstance(sys.meta_path, SentinelList):
+                return
+            sys.meta_path = SentinelList(sys.meta_path,
+                                         sentinel=RecursiveImporter())
     finally:
         imp.release_lock()
 
@@ -60,34 +71,47 @@ class RecursiveImporter(ImportHook):
         if not package_dir:
             return
 
-        children = self._list_children(package_dir)
-        if children:
-            globals_ = module.__dict__
-            locals_ = module.__dict__
-            for child in children:
-                child_module = __import__(child, globals_, locals_)
+        for child in self._list_children(package_dir):
+            child_module = self._import_child_module(module, child)
 
-                # bring (symbols from) child module into parent's namespace
-                if as_star:
-                    public_names = getattr(child_module, '__all__', None)
-                    if public_names is None:
-                        public_names = (name for name in child_module.__dict__
-                                        if not name.startswith('_'))
-                    for name in public_names:
-                        obj = getattr(child_module, name)
-                        setattr(module, name, obj)
-                else:
-                    if not hasattr(module, child):
-                        setattr(module, child, child_module)
+            # bring (symbols from) child module into parent's namespace
+            if as_star:
+                public_names = getattr(child_module, '__all__', None)
+                if public_names is None:
+                    public_names = (name for name in child_module.__dict__
+                                    if not name.startswith('_'))
+                for name in public_names:
+                    obj = getattr(child_module, name)
+                    setattr(module, name, obj)
+            else:
+                if not hasattr(module, child):
+                    setattr(module, child, child_module)
 
-                # apply the importing procedure recursively,
-                # but only if it wasn't applied already, simply by
-                # our import hook triggering when child was imported above
-                if not hasattr(child_module, '__recursive__'):
-                    self._recursive_import(child_module, as_star)
+            # apply the importing procedure recursively,
+            # but only if it wasn't applied already, simply by
+            # our import hook triggering when child was imported above
+            if not hasattr(child_module, '__recursive__'):
+                self._recursive_import(child_module, as_star)
 
         module.__loader__ = self
         return module
+
+    def _import_child_module(self, module, child):
+        """Import a child module, relative to the ``module``\ s package.
+
+        :param module: Module object for the package's `__init__` module
+        :param child: Name of child module to import, as string
+
+        :return: Imported module object
+        :raise ImportError: If module could not be imported
+        """
+        if IS_PY26:
+            globals_ = module.__dict__
+            locals_ = module.__dict__
+            return __import__(child, globals_, locals_)
+        else:
+            from importlib import import_module
+            return import_module('%s.%s' % (module.__name__, child))
 
     def _get_package_dir(self, module):
         """Get the package directory for given `__init__` module."""

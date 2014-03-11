@@ -2,6 +2,7 @@
 Compatibility shims for different Python versions and platforms.
 """
 import sys
+IS_PY26 = sys.version_info[0:2] == (2, 6)
 IS_PY3 = sys.version_info[0] == 3
 
 
