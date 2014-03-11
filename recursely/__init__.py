@@ -7,7 +7,6 @@ __author__ = "Karol Kuczmarski"
 __license__ = "Simplified BSD"
 
 
-import imp
 import os
 import sys
 
@@ -26,24 +25,21 @@ def install():
     at the very end of ``sys.meta_path``, so that it's tried only if
     no other (more specific) hook has been chosen by Python.
     """
-    imp.acquire_lock()
-    try:
-        if IS_PY3:
-            if any(isinstance(ih, RecursiveImporter) for ih in sys.meta_path):
-                return
+    if RecursiveImporter.is_installed():
+        return
 
-            for i in reversed(range(len(sys.meta_path))):
-                ih_module = getattr(sys.meta_path[i], '__module__', '')
-                if ih_module != '_frozen_importlib':
-                    break
-            sys.meta_path.insert(i, RecursiveImporter())
-        else:
-            if isinstance(sys.meta_path, SentinelList):
-                return
-            sys.meta_path = SentinelList(sys.meta_path,
-                                         sentinel=RecursiveImporter())
-    finally:
-        imp.release_lock()
+    if IS_PY3:
+        # TODO(xion): extend SentinelList to support multiple sentinels
+        # and use it to preserve the _frozen_importlib modules
+        # along with RecursiveImporter at the end of sys.meta_path
+        for i in reversed(range(len(sys.meta_path))):
+            ih_module = getattr(sys.meta_path[i], '__module__', '')
+            if ih_module != '_frozen_importlib':
+                break
+        sys.meta_path.insert(i, RecursiveImporter())
+    else:
+        sys.meta_path = SentinelList(sys.meta_path,
+                                     sentinel=RecursiveImporter())
 
 
 class RecursiveImporter(ImportHook):

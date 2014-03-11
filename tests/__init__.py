@@ -47,25 +47,33 @@ class TestRecursiveImporter(unittest.TestCase):
         # make it possible to import from tests/imported directory
         sys.path.insert(0, IMPORTED_DIR)
 
-    def test_only_submodules(self):
+    def test_install__duplicate(self):
+        import recursely
+        recursely.install()
+
+        recursive_importers = [ih for ih in sys.meta_path
+                               if getattr(ih, '__module__', '') == 'recursely']
+        self.assertEquals(1, len(recursive_importers))
+
+    def test_import__only_submodules(self):
         """Package with just one level of submodules."""
         import justmodules as pkg
         self.assertEquals(pkg.a.A, 1)
         self.assertEquals(pkg.b.B, 2)
 
-    def test_only_subpackages(self):
+    def test_import__only_subpackages(self):
         """Package with just one level of subpackages."""
         import justpackages as pkg
         self.assertEquals(pkg.a.A, 1)
         self.assertEquals(pkg.b.B, 2)
 
-    def test_both__one_level(self):
+    def test_import__both__one_level(self):
         """Package with modules and packages up to one level of recursion."""
         import both1level as pkg
         self.assertEquals(pkg.a.A, 1)
         self.assertEquals(pkg.b.B, 2)
 
-    def test_both__two_levels(self):
+    def test_import__both__two_levels(self):
         """Package with modules and packages up to two levels of recursion."""
         import both2levels as pkg
         self.assertEquals(pkg.a.A, 1)
@@ -73,7 +81,7 @@ class TestRecursiveImporter(unittest.TestCase):
         self.assertEquals(pkg.a.c.C, 3)
         self.assertEquals(pkg.a.d.D, 4)
 
-    def test_both__three_levels(self):
+    def test_import__both__three_levels(self):
         """Package with modules and packages up to three levels of recursion."""
         import both3levels as pkg
         self.assertEquals(pkg.a.A, 1)
@@ -84,7 +92,7 @@ class TestRecursiveImporter(unittest.TestCase):
         self.assertEquals(pkg.a.c.f.F, 6)
         self.assertEquals(pkg.a.c.g.G, 7)
 
-    def test_star_import(self):
+    def test_import__star(self):
         """Package with ``_recursive__ = '*'``."""
         import starimport as pkg
         self.assertEquals(pkg.A, 1)

@@ -22,6 +22,13 @@ class ImportHook(object):
     Alternativaly, it's possible to completely either the process
     of finding a module to import, or loading the module, or both.
     """
+    @classmethod
+    def is_installed(cls):
+        """Checks whether any instance of this import hook is installed."""
+        return any(isinstance(ih, cls) for ih in sys.meta_path)
+
+    # Overrideable import events
+
     def on_module_found(self, fullname, path):
         """Event triggered when module has been succesfully found
         and will be loaded using this importer.
