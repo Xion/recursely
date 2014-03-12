@@ -52,7 +52,7 @@ class TestRecursiveImporter(unittest.TestCase):
         recursely.install()
 
         recursive_importers = [ih for ih in sys.meta_path
-                               if getattr(ih, '__module__', '') == 'recursely']
+                               if type(ih) == recursely.RecursiveImporter]
         self.assertEquals(1, len(recursive_importers))
 
     def test_import__only_submodules(self):
