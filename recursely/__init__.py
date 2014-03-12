@@ -29,14 +29,13 @@ def install():
         return
 
     if IS_PY3:
-        # TODO(xion): extend SentinelList to support multiple sentinels
-        # and use it to preserve the _frozen_importlib modules
-        # along with RecursiveImporter at the end of sys.meta_path
         for i in reversed(range(len(sys.meta_path))):
             ih_module = getattr(sys.meta_path[i], '__module__', '')
             if ih_module != '_frozen_importlib':
                 break
-        sys.meta_path.insert(i, RecursiveImporter())
+        sys.meta_path = SentinelList(
+            sys.meta_path[:i],
+            sentinels=[RecursiveImporter()] + sys.meta_path[i:])
     else:
         sys.meta_path = SentinelList(sys.meta_path,
                                      sentinel=RecursiveImporter())
