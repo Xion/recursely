@@ -25,6 +25,7 @@ That's all to it, really.
 import ast
 import os
 from setuptools import setup, find_packages
+import sys
 
 
 def read_tags(filename):
@@ -84,6 +85,16 @@ def read_requirements(filename='requirements.txt'):
         return list(map(extract_requirement, filter(valid_line, lines)))
 
 
+def read_test_requirements():
+    """Reads the list of test requirements
+    for ``tests_require`` parameter of ``setup()``.
+    """
+    requirements = read_requirements('test')
+    if sys.version_info <= (2, 7):
+        requirements.extend(read_requirements('test-py26'))
+    return requirements
+
+
 tags = read_tags(os.path.join('recursely', '__init__.py'))
 __doc__ = __doc__.format(**tags)
 
@@ -110,5 +121,5 @@ setup(
 
     platforms='any',
     packages=find_packages(exclude=['tests']),
-    tests_require=read_requirements('test'),
+    tests_require=read_test_requirements(),
 )
