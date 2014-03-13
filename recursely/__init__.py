@@ -1,7 +1,7 @@
 """
 recursely
 """
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 __description__ = "Recursive importer for Python submodules"
 __author__ = "Karol Kuczmarski"
 __license__ = "Simplified BSD"
