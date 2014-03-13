@@ -1,6 +1,7 @@
 """
 Base class for import hooks.
 """
+from contextlib import contextmanager
 import imp
 import inspect
 import sys
@@ -26,6 +27,17 @@ class ImportHook(object):
     def is_installed(cls):
         """Checks whether any instance of this import hook is installed."""
         return any(isinstance(ih, cls) for ih in sys.meta_path)
+
+    @contextmanager
+    def import_lock(self):
+        """Context manager for establishing a lock on the import facility.
+        Uses ``imp.acquire_lock`` and ``imp.release_lock``.
+        """
+        imp.acquire_lock()
+        try:
+            yield
+        finally:
+            imp.release_lock()
 
     # Overrideable import events
 
@@ -74,11 +86,12 @@ class ImportHook(object):
 
         By default, we locate the module using a standard method
         that involves ``find_module`` function from ``imp`` package.
-        This can be overriden in subclasses by implementing ``on_find_module``
+        This can be overridden in subclasses by implementing ``on_find_module``
         that returns truthy value.
         """
         try:
-            if not self.on_find_module(fullname, path):
+            finding_overridden = bool(self.on_find_module(fullname, path))
+            if not finding_overridden:
                 # although documentation on ``imp`` module says otherwise,
                 # without adding ``sys.path`` the hook doesn't really work
                 # because it doesn't capture the submodules of the module
@@ -110,12 +123,9 @@ class ImportHook(object):
         This can be overriden in subclasses by implementing ``on_load_module``
         that returns a module object.
         """
-        imp.acquire_lock()
-        try:
+        with self.import_lock():
             module = self.on_load_module(fullname, self._path)
             return module or self._import(fullname)
-        finally:
-            imp.release_lock()
 
     def _import(self, fullname):
         """Imports module of given name using the standard Python procedure.
@@ -123,12 +133,11 @@ class ImportHook(object):
         :return: Module object
         :raise ImportError: When finding or loading the module fails
         """
-        try:
-            existing = sys.modules[fullname]
-            if not self.on_module_already_imported(fullname, existing):
+        existing = self._get_module(fullname)
+        if existing is not None:
+            reimport = bool(self.on_module_already_imported(fullname, existing))
+            if not reimport:
                 return existing
-        except KeyError:
-            pass
 
         # for dotted names, apply importing procedure recursively
         if '.' in fullname:
@@ -146,23 +155,34 @@ class ImportHook(object):
 
             # do post-processing defined in subclasses, if any
             processed_mod_obj = self.on_module_imported(fullname, mod_obj)
-            if processed_mod_obj:
+            if processed_mod_obj is not None:
                 mod_obj = sys.modules[fullname] = processed_mod_obj
             return mod_obj
         finally:
             if file_obj:
                 file_obj.close()
 
+    def _get_module(self, fullname):
+        """Retrieve existing module from ``sys.modules``.
+        :return: Module object or ``None`` if it's not imported
+        """
+        try:
+            return sys.modules[fullname]
+        except KeyError:
+            return None
+
     # Optional PEP302 methods
 
     def is_package(self, fullname):
-        return hasattr(self._import(fullname), '__path__')
+        module = self._get_module(fullname) or self._import(fullname)
+        return hasattr(module, '__path__')
 
     def get_code(self, fullname):
         return compile(self.get_source(fullname))
 
     def get_source(self, fullname):
-        return inspect.getsource(self._import(fullname))
+        module = self._get_module(fullname) or self._import(fullname)
+        return inspect.getsource(module)
 
 if IS_PY3:
     from importlib import abc
