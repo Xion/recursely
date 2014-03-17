@@ -19,9 +19,18 @@ class RecursiveImporter(ImportHook):
     """
     def on_module_imported(self, fullname, module):
         """Invoked just after a module has been imported."""
+        return self.recurse(module)
+
+    def recurse(self, module):
+        """Act upon possible ``__recursive__`` directive defined in ``module``.
+        :param module: Module object for the package's `__init__` module
+        :return: ``module`` object
+        """
         recursive = getattr(module, '__recursive__', None)
         if recursive:
             return self._recursive_import(module, as_star=recursive == '*')
+        else:
+            return module
 
     def _recursive_import(self, module, as_star=False):
         """Recursively import submodules and/or subpackage of given package.
@@ -30,6 +39,8 @@ class RecursiveImporter(ImportHook):
         :param as_star: Whether this should be a "star" import, i.e. a one
                         that brings all symbols from child module into
                         parent module's namespace (``from foo import **``).
+
+        :return: ``module`` object
         """
         package_dir = self._get_package_dir(module)
         if not package_dir:

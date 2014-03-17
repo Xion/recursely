@@ -59,6 +59,16 @@ class Install(_RecursiveImporter):
         import justmodules as pkg
         self.assertFalse(hasattr(pkg, 'a'))
 
+    def test_retroactive__true(self):
+        import justmodules as pkg
+        recursely.install(retroactive=True)
+        self.assertTrue(hasattr(pkg, 'a'))
+
+    def test_retroactive__false(self):
+        import justmodules as pkg
+        recursely.install(retroactive=False)
+        self.assertFalse(hasattr(pkg, 'a'))
+
     def test_duplicate_call(self):
         recursely.install()
         recursely.install()

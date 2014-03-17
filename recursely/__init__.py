@@ -17,24 +17,36 @@ from recursely.utils import SentinelList
 __all__ = ['install']
 
 
-def install():
-    """Install the recursive import hook in ``sys.meta_path``.
+def install(retroactive=True):
+    """Install the recursive import hook in ``sys.meta_path``,
+    enabling the use of ``__recursive__`` directive.
 
-    Because the hook is a catch-all one, we ensure that it's always
-    at the very end of ``sys.meta_path``, so that it's tried only if
-    no other (more specific) hook has been chosen by Python.
+    :param retroactive: Whether the hook should be retroactively applied
+                        to module's that have been imported before
+                        it was installed.
     """
     if RecursiveImporter.is_installed():
         return
 
+    importer = RecursiveImporter()
+
+    # because the hook is a catch-all one, we ensure that it's always
+    # at the very end of ``sys.meta_path``, so that it's tried only if
+    # no other (more specific) hook has been chosen by Python
     if IS_PY3:
         for i in reversed(range(len(sys.meta_path))):
             ih_module = getattr(sys.meta_path[i], '__module__', '')
-            if ih_module != '_frozen_importlib':
+            is_builtin = ih_module == '_frozen_importlib'
+            if not is_builtin:
                 break
         sys.meta_path = SentinelList(
             sys.meta_path[:i],
-            sentinels=[RecursiveImporter()] + sys.meta_path[i:])
+            sentinels=[importer] + sys.meta_path[i:])
     else:
-        sys.meta_path = SentinelList(sys.meta_path,
-                                     sentinel=RecursiveImporter())
+        sys.meta_path = SentinelList(sys.meta_path, sentinel=importer)
+
+    # look through already imported packages and recursively import
+    # their submodules, if they contain the ``__recursive__`` directive
+    if retroactive:
+        for module in sys.modules.values():
+            importer.recurse(module)
