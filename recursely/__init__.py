@@ -48,5 +48,5 @@ def install(retroactive=True):
     # look through already imported packages and recursively import
     # their submodules, if they contain the ``__recursive__`` directive
     if retroactive:
-        for module in sys.modules.values():
+        for module in list(sys.modules.values()):
             importer.recurse(module)
