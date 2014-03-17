@@ -4,6 +4,7 @@ Tests for .importer module.
 import os
 import sys
 
+import recursely
 from tests._compat import TestCase
 
 
@@ -22,23 +23,57 @@ def test_imported_dir_is_not_package():
     assert not os.path.exists(imported_init_py)
 
 
-class TestRecursiveImporter(TestCase):
+class _RecursiveImporter(TestCase):
+    """Base class for :class:`RecursiveImporter` test cases."""
 
     @classmethod
     def setUpClass(cls):
-        import recursely
-        recursely.install()
-
         # make it possible to import from tests/imported directory
         sys.path.insert(0, IMPORTED_DIR)
 
-    def test_install__duplicate(self):
-        import recursely
+    def tearDown(self):
+        """Clean-up whatever we have made.
+
+        This is to provide that every test begins with a clear known state
+        of interpreter's importing mechanism.
+        """
+        # uninstall the hook, if it was ever installed.
+        # TODO(xion): consider exposing an ``uninstall`` function.
+        sys.meta_path = [ih for ih in sys.meta_path
+                         if type(ih) is not recursely.RecursiveImporter]
+
+        # remove any of our test packages that we might have imported
+        for package in os.listdir(IMPORTED_DIR):
+            for name in list(sys.modules):
+                if name == package or name.startswith(package + '.'):
+                    del sys.modules[name]
+
+
+class Install(_RecursiveImporter):
+    """Tests for the ``RecursiveImporter.install`` method."""
+
+    def test_required_call(self):
+        """Test that the recursive importing doesn't magically kick in
+        without us calling the ``install`` method.
+        """
+        import justmodules as pkg
+        self.assertFalse(hasattr(pkg, 'a'))
+
+    def test_duplicate_call(self):
+        recursely.install()
         recursely.install()
 
         recursive_importers = [ih for ih in sys.meta_path
-                               if type(ih) == recursely.RecursiveImporter]
+                               if type(ih) is recursely.RecursiveImporter]
         self.assertEquals(1, len(recursive_importers))
+
+
+class Import(_RecursiveImporter):
+    """Tests for the recursive importing through :class:`RecursiveImporter`."""
+
+    def setUp(self):
+        super(Import, self).setUp()
+        recursely.install()
 
     def test_import__only_submodules(self):
         """Package with just one level of submodules."""
