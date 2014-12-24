@@ -13,3 +13,4 @@ install:
             pip install -r requirements-test-py26.txt --use-mirrors
         fi
 script: nosetests
+sudo: false
