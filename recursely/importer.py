@@ -2,6 +2,7 @@
 Import hook for ``__recursive__`` importing of submodules.
 """
 import os
+import sys
 
 from recursely._compat import IS_PY26
 from recursely.hook import ImportHook
@@ -35,7 +36,7 @@ class RecursiveImporter(ImportHook):
     def _recursive_import(self, module, as_star=False):
         """Recursively import submodules and/or subpackage of given package.
 
-        :param module: Module object for the package's `__init__` module
+        :param module: Module object for the package
         :param as_star: Whether this should be a "star" import, i.e. a one
                         that brings all symbols from child module into
                         parent module's namespace (``from foo import **``).
@@ -45,6 +46,13 @@ class RecursiveImporter(ImportHook):
         package_dir = self._get_package_dir(module)
         if not package_dir:
             return
+
+        # if `foo.__init__` is imported explicitly (rare), ensure that
+        # recursively imported `foo/bar.py` is namespaced as `foo.bar`
+        # rather than nonsensical `foo.__init__.bar`
+        if module.__name__.endswith('.__init__'):
+            package_name = module.__name__[:-len('.__init__')]
+            module = sys.modules[package_name]
 
         for child in self._list_children(package_dir):
             child_module = self._import_child_module(module, child)
