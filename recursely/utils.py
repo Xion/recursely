@@ -28,7 +28,8 @@ class SentinelListMetaclass(type):
 
         for op in cls.OPERATORS + cls.METHODS:
             dict_[op] = cls.with_preserved_sentinel(op)
-        return type.__new__(cls, name, bases, dict_)
+        return super(SentinelListMetaclass, cls).__new__(
+            cls, name, bases, dict_)
 
     @classmethod
     def with_preserved_sentinel(cls, op):
@@ -39,11 +40,22 @@ class SentinelListMetaclass(type):
         def wrapper(self, *args, **kwargs):
             super_ = super(SentinelList, self)
 
+            # temporarily remove the sentinels
             sentinels = [super_.pop() for _ in range(self._sentinels_count)]
             sentinels.reverse()
+
+            # perform the actual operations
             try:
                 return getattr(super_, op)(*args, **kwargs)
             finally:
+                # restore the sentinels, placing them again at the end
+                # (and ONLY at the end -- duplicates in any other places
+                # shall be removed first)
+                for sentinel in sentinels:
+                    try:
+                        super_.remove(sentinel)
+                    except ValueError:
+                        pass
                 super_.extend(sentinels)
 
         # original methods of ``list`` don't have ``__module__`` attribute,
